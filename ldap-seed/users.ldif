@@ -1,0 +1,61 @@
+version: 1
+
+dn: uid=alice,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: top
+cn: Alice Johnson
+sn: Johnson
+uid: alice
+uidNumber: 30001
+gidNumber: 30001
+homeDirectory: /home/alice
+mail: alice.johnson@example.com
+
+dn: uid=bob,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: top
+cn: Bob Smith
+sn: Smith
+uid: bob
+uidNumber: 30002
+gidNumber: 30002
+homeDirectory: /home/bob
+mail: bob.smith@example.com
+
+dn: uid=charlie,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: top
+cn: Charlie Brown
+sn: Brown
+uid: charlie
+uidNumber: 30003
+gidNumber: 30003
+homeDirectory: /home/charlie
+mail: charlie.brown@example.com
+
+dn: uid=diana,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: top
+cn: Diana Prince
+sn: Prince
+uid: diana
+uidNumber: 30004
+gidNumber: 30004
+homeDirectory: /home/diana
+mail: diana.prince@example.com
+
+dn: uid=teamlead,dc=example,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: top
+cn: Team Lead
+sn: Lead
+uid: teamlead
+uidNumber: 30005
+gidNumber: 30005
+homeDirectory: /home/teamlead
+mail: teamlead@example.com

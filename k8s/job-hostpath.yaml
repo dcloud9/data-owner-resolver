@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-owner-resolver
+  namespace: data-resolver
+spec:
+  # This is the LOCAL TESTING job (used by deploy.sh)
+  # Uses hardcoded LDAP settings for the embedded Bitnami LDAP server
+  # For PRODUCTION, use job.yaml which reads LDAP config from ConfigMap/Secret
+
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: resolver
+        image: data-owner-resolver:latest
+        imagePullPolicy: Never
+        # Specify exact directories to scan (I/O efficient)
+        # For local testing with deploy.sh, scan all test directories
+        args:
+          - "/mnt/data/alice-data"
+          - "/mnt/data/bob-data"
+          - "/mnt/data/charlie-data"
+          - "/mnt/data/diana-data"
+          - "/mnt/data/shared-team"
+        env:
+        # Bitnami LDAP uses port 1389 (not 389)
+        - name: LDAP_URL
+          value: "ldap://ldap:1389"
+        - name: LDAP_BIND_DN
+          value: "cn=admin,dc=example,dc=com"
+        - name: LDAP_BIND_PASS
+          value: "admin"
+        - name: LDAP_BASE_DN
+          value: "dc=example,dc=com"
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/data
+          readOnly: true
+        securityContext:
+          runAsUser: 0
+      volumes:
+      # hostPath volume - reads from k3d node filesystem
+      # In k3d: /tmp/data-resolver-test (host) -> /mnt/data (k3d nodes)
+      - name: data
+        hostPath:
+          path: /mnt/data
+          type: Directory

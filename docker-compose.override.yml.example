@@ -1,0 +1,24 @@
+# Docker Compose override for Linux
+#
+# This file adds volume mount to enable live editing of testdata without rebuilding.
+#
+# LINUX USERS: Copy this file to enable volume mounts
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#
+# macOS USERS: Do NOT copy this file. Use the base docker-compose.yml which uses
+# baked-in testdata with correct ownership set during build.
+#
+# Note: Make sure testdata directories have correct ownership on Linux:
+#   sudo chown -R 30001:30001 testdata/alice-data
+#   sudo chown -R 30002:30002 testdata/bob-data
+#   sudo chown -R 30003:30003 testdata/charlie-data
+#   sudo chown -R 30004:30004 testdata/diana-data
+#   sudo chown -R 30005:30005 testdata/shared-team
+# (Or use test-resolver.sh which handles this automatically)
+
+version: "3.9"
+
+services:
+  resolver:
+    volumes:
+      - ./testdata:/mnt/data:ro

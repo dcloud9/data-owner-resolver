@@ -1,0 +1,87 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-owner-resolver-scheduled
+  namespace: default
+spec:
+  # This is a PRODUCTION cronjob manifest that uses hostPath volumes.
+  # It will FAIL if the hostPath does not exist on the Kubernetes nodes.
+  # For local testing with k3d, use the testing deployment (see k8s/README.md)
+
+  # Run every day at 2 AM
+  schedule: "0 2 * * *"
+
+  # Keep last 3 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400  # 24 hours
+
+      template:
+        metadata:
+          labels:
+            app: data-owner-resolver
+            type: scheduled
+        spec:
+          restartPolicy: OnFailure
+
+          containers:
+          - name: resolver
+            image: data-owner-resolver:latest
+            imagePullPolicy: IfNotPresent
+
+            # Specify ONLY the directories that need scanning (I/O efficient)
+            # For thousands of directories, use trigger-scan.sh from external scripts
+            # to pass only specific paths that need ownership resolution
+            args:
+              - "/mnt/data/project1"
+              - "/mnt/data/project2"
+              - "/mnt/data/project3"
+
+            env:
+            - name: LDAP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: data-owner-resolver-config
+                  key: LDAP_URL
+            - name: LDAP_BIND_DN
+              valueFrom:
+                configMapKeyRef:
+                  name: data-owner-resolver-config
+                  key: LDAP_BIND_DN
+            - name: LDAP_BASE_DN
+              valueFrom:
+                configMapKeyRef:
+                  name: data-owner-resolver-config
+                  key: LDAP_BASE_DN
+            - name: LDAP_BIND_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: data-owner-resolver-secret
+                  key: LDAP_BIND_PASS
+
+            volumeMounts:
+            - name: data
+              mountPath: /mnt/data
+              readOnly: true
+
+            securityContext:
+              runAsUser: 0
+
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+          volumes:
+          # hostPath volume to access actual filesystem with real UIDs
+          # This directly mounts the node's filesystem, preserving native UIDs
+          - name: data
+            hostPath:
+              path: /mnt/data  # Change this to your actual data path
+              type: Directory  # Fails if directory doesn't exist

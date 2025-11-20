@@ -1,0 +1,92 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-owner-resolver
+  namespace: default
+spec:
+  # This is a PRODUCTION job manifest
+  # Key differences from job-hostpath.yaml (local testing):
+  # - Uses external LDAP (reads config from ConfigMap/Secret)
+  # - Uses 'default' namespace (not 'data-resolver')
+  # - Longer TTL (3600s vs 600s)
+  #
+  # For local k3d testing, use: cd k8s && ./deploy.sh
+
+  # Cleanup completed jobs after 1 hour
+  ttlSecondsAfterFinished: 3600
+
+  template:
+    metadata:
+      labels:
+        app: data-owner-resolver
+    spec:
+      restartPolicy: OnFailure
+
+      # Run on nodes where the data is accessible
+      # nodeSelector:
+      #   role: storage-node
+
+      containers:
+      - name: resolver
+        image: data-owner-resolver:latest
+        imagePullPolicy: IfNotPresent
+
+        # Specify ONLY the directories that need scanning (I/O efficient)
+        # This avoids scanning thousands of unnecessary directories
+        # External scripts should pass only specific paths
+        args:
+          - "/mnt/data/project1"
+          - "/mnt/data/project2"
+
+        # LDAP configuration from ConfigMap and Secret
+        env:
+        - name: LDAP_URL
+          valueFrom:
+            configMapKeyRef:
+              name: data-owner-resolver-config
+              key: LDAP_URL
+        - name: LDAP_BIND_DN
+          valueFrom:
+            configMapKeyRef:
+              name: data-owner-resolver-config
+              key: LDAP_BIND_DN
+        - name: LDAP_BASE_DN
+          valueFrom:
+            configMapKeyRef:
+              name: data-owner-resolver-config
+              key: LDAP_BASE_DN
+        - name: LDAP_BIND_PASS
+          valueFrom:
+            secretKeyRef:
+              name: data-owner-resolver-secret
+              key: LDAP_BIND_PASS
+
+        # Mount the host filesystem
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/data
+          readOnly: true
+
+        # Security context: Run as root to see host UIDs
+        # In production, you may need to use a specific UID or privileged mode
+        securityContext:
+          runAsUser: 0
+          # Uncomment if needed:
+          # privileged: true
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+      volumes:
+      # hostPath volume to access actual filesystem with real UIDs
+      # This directly mounts the node's filesystem, preserving native UIDs
+      # The CNI plugin allows pods to see the real filesystem ownership
+      - name: data
+        hostPath:
+          path: /mnt/data  # Change this to your actual data path
+          type: Directory  # Fails if directory doesn't exist
